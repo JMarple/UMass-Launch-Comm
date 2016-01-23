@@ -2,16 +2,24 @@
 <mavlink>
     <version>1</version>
     <enums>
+        <enum name="MAV_GENERAL">
+            <entry value="1" name="MAV_GENERAL_SYSTEM">
+                <description>A General System Update </description>
+            </entry>
+        </enum>
+        <enum name="MAV_STATUS">
+            <entry value="1" name="MAV_STATUS_OK">
+                <description>A status back saying everything is OK</description>
+            </entry>
+            <entry value="101" name="MAV_STATUS_GEN_ERROR">
+                <description>A general error message.</description>
+            </entry>
+        </enum>
     </enums>
     <messages>
           <message id="0" name="HEARTBEAT">
-               <description>The heartbeat message shows that a system is present and responding. The type of the MAV and Autopilot hardware allow the receiving system to treat further messages from this system appropriate (e.g. by laying out the user interface based on the autopilot).</description>
-               <field type="uint8_t" name="type">Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)</field>
-               <field type="uint8_t" name="autopilot">Autopilot type / class. defined in MAV_AUTOPILOT ENUM</field>
-               <field type="uint8_t" name="base_mode">System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h</field>
-               <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags.</field>
-               <field type="uint8_t" name="system_status">System status flag, see MAV_STATE ENUM</field>
-               <field type="uint8_t_mavlink_version" name="mavlink_version">MAVLink version</field>
+               <description>The heartbeat message shows that a system is present and responding.</description>
+               <field type="uint8_t" name="system_status">System status flagMAV_STATUS ENUM</field>
           </message>
     </messages>
 </mavlink>
