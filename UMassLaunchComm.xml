@@ -21,5 +21,12 @@
                <description>The heartbeat message shows that a system is present and responding.</description>
                <field type="uint8_t" name="system_status">System status flagMAV_STATUS ENUM</field>
           </message>
+          <message id="101" name="IMAGE">
+                <field type="uint16_t" name="segment"></field>
+                <field type="uint16_t" name="image"></field>
+                <field type="uint16_t" name="bytes"></field>
+                <field type="char[48]" name="data"></field>
+          </message>
     </messages>
+
 </mavlink>
