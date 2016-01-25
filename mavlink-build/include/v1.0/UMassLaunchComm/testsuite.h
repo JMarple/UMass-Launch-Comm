@@ -73,15 +73,16 @@ static void mavlink_test_image(uint8_t system_id, uint8_t component_id, mavlink_
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
         uint16_t i;
 	mavlink_image_t packet_in = {
-		17235,17339,17443,"GHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZA"
+		17235,17339,17443,17547,"IJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXY"
     };
 	mavlink_image_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
         	packet1.segment = packet_in.segment;
         	packet1.image = packet_in.image;
+        	packet1.numSegments = packet_in.numSegments;
         	packet1.bytes = packet_in.bytes;
         
-        	mav_array_memcpy(packet1.data, packet_in.data, sizeof(char)*48);
+        	mav_array_memcpy(packet1.data, packet_in.data, sizeof(char)*200);
         
 
         memset(&packet2, 0, sizeof(packet2));
@@ -90,12 +91,12 @@ static void mavlink_test_image(uint8_t system_id, uint8_t component_id, mavlink_
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_image_pack(system_id, component_id, &msg , packet1.segment , packet1.image , packet1.bytes , packet1.data );
+	mavlink_msg_image_pack(system_id, component_id, &msg , packet1.segment , packet1.image , packet1.numSegments , packet1.bytes , packet1.data );
 	mavlink_msg_image_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_image_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.segment , packet1.image , packet1.bytes , packet1.data );
+	mavlink_msg_image_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.segment , packet1.image , packet1.numSegments , packet1.bytes , packet1.data );
 	mavlink_msg_image_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
@@ -108,7 +109,7 @@ static void mavlink_test_image(uint8_t system_id, uint8_t component_id, mavlink_
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
         
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_image_send(MAVLINK_COMM_1 , packet1.segment , packet1.image , packet1.bytes , packet1.data );
+	mavlink_msg_image_send(MAVLINK_COMM_1 , packet1.segment , packet1.image , packet1.numSegments , packet1.bytes , packet1.data );
 	mavlink_msg_image_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }

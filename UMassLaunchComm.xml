@@ -24,8 +24,9 @@
           <message id="101" name="IMAGE">
                 <field type="uint16_t" name="segment"></field>
                 <field type="uint16_t" name="image"></field>
+                <field type="uint16_t" name="numSegments"></field>
                 <field type="uint16_t" name="bytes"></field>
-                <field type="char[48]" name="data"></field>
+                <field type="char[200]" name="data"></field>
           </message>
     </messages>
 

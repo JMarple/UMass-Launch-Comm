@@ -44,7 +44,7 @@ int Cport[38],
 struct termios new_port_settings,
        old_port_settings[38];
 
-char comports[38][16]={"/dev/ttyS0","/dev/ttyS1","/dev/ttyS2","/dev/ttyS3","/dev/ttyS4","/dev/ttyS5",
+char comports[38][16]={"/dev/pts/6","/dev/pts/11","/dev/ttyS2","/dev/ttyS3","/dev/ttyS4","/dev/ttyS5",
                        "/dev/ttyS6","/dev/ttyS7","/dev/ttyS8","/dev/ttyS9","/dev/ttyS10","/dev/ttyS11",
                        "/dev/ttyS12","/dev/ttyS13","/dev/ttyS14","/dev/ttyS15","/dev/ttyUSB0",
                        "/dev/ttyUSB1","/dev/ttyUSB2","/dev/ttyUSB3","/dev/ttyUSB4","/dev/ttyUSB5",
@@ -124,7 +124,7 @@ int RS232_OpenComport(int comport_number, int baudrate, const char *mode)
                    break;
     case 3500000 : baudr = B3500000;
                    break;
-    case 4000000 : baudr = B4000000;
+    case 4000000 : baudr = B4000000; 
                    break;
     default      : printf("invalid baudrate\n");
                    return(1);
@@ -235,20 +235,20 @@ http://man7.org/linux/man-pages/man3/termios.3.html
     return(1);
   }
 
-  if(ioctl(Cport[comport_number], TIOCMGET, &status) == -1)
+  /*if(ioctl(Cport[comport_number], TIOCMGET, &status) == -1)
   {
     perror("unable to get portstatus");
     return(1);
   }
 
-  status |= TIOCM_DTR;    /* turn on DTR */
-  status |= TIOCM_RTS;    /* turn on RTS */
+  status |= TIOCM_DTR;   
+  status |= TIOCM_RTS;    
 
   if(ioctl(Cport[comport_number], TIOCMSET, &status) == -1)
   {
     perror("unable to set portstatus");
     return(1);
-  }
+  }*/
 
   return(0);
 }
@@ -285,18 +285,18 @@ void RS232_CloseComport(int comport_number)
 {
   int status;
 
-  if(ioctl(Cport[comport_number], TIOCMGET, &status) == -1)
+  /*if(ioctl(Cport[comport_number], TIOCMGET, &status) == -1)
   {
     perror("unable to get portstatus");
   }
 
-  status &= ~TIOCM_DTR;    /* turn off DTR */
-  status &= ~TIOCM_RTS;    /* turn off RTS */
+  status &= ~TIOCM_DTR;    
+  status &= ~TIOCM_RTS; 
 
   if(ioctl(Cport[comport_number], TIOCMSET, &status) == -1)
   {
     perror("unable to set portstatus");
-  }
+  }*/
 
   tcsetattr(Cport[comport_number], TCSANOW, old_port_settings + comport_number);
   close(Cport[comport_number]);

@@ -1,6 +1,7 @@
 CFLAGS = -I mavlink-build/include/v1.0
 CFLAGS += -I mavlink-build/include/v1.0/UMassLaunchComm
 CFLAGS += -I serial
+CFLAGS += -g
 SERIAL = serial/rs232.c
 SERIAL += serial/serial.c
 
