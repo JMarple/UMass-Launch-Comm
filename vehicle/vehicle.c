@@ -18,11 +18,13 @@ void sendGeneralHeartbeat(serialInfo* info, uint8_t status)
     serialSend(info, buf, len);
 }
 
-char* sendImage(serialInfo* info, FILE* fp)
+char* sendFile(serialInfo* info, FILE* fp)
 {
     int c;
     int lc = 0;
     int segment = 0;
+    static int id = 0;
+    id++;
 
     // Determine size of file by going to the back of the file
     // and figuring out the position.  Then return back to the 
@@ -65,8 +67,8 @@ char* sendImage(serialInfo* info, FILE* fp)
         {
             mavlink_image_t imgmsg;
             imgmsg.segment = segment;
-            imgmsg.image = 0; 
-            imgmsg.numSegments = maxSegments;
+            imgmsg.image = id; 
+            imgmsg.fileSize= sz;
             imgmsg.bytes = (lc >= sz) ? sz % PACKET_SIZE : PACKET_SIZE;
 
             int i;
@@ -78,7 +80,7 @@ char* sendImage(serialInfo* info, FILE* fp)
             mavlink_message_t msg;
 
             mavlink_msg_image_pack(ROCKET_ID, MAV_GENERAL_SYSTEM, &msg, 
-                imgmsg.segment, imgmsg.image, imgmsg.numSegments, 
+                imgmsg.segment, imgmsg.image, imgmsg.fileSize, 
                 imgmsg.bytes, imgmsg.data);
 
             uint8_t buf[MAVLINK_MAX_PACKET_LEN]; 
@@ -107,6 +109,11 @@ int main()
     }   
 
     sendGeneralHeartbeat(&serial, MAV_STATUS_OK); 
-    sendImage(&serial, fopen("vehicle/testimage2.jpg", "r")); 
+    char* firstImage = sendFile(&serial, fopen("vehicle/testimage.jpg", "r")); 
+    char* secondImage = sendFile(&serial, fopen("vehicle/testimage2.jpg", "r"));
+    char* thirdImage = sendFile(&serial, fopen("vehicle/testimage3.jpg", "r"));
+    free(firstImage);
+    free(secondImage);
+    free(thirdImage);
     serialClose(&serial); 
 }

@@ -3,7 +3,86 @@
 #include "serial.h"
 #include <stdlib.h>
 
+#define MAX_IMAGES_OPEN 10
+
+typedef struct _patchedImage
+{
+    int id;
+    char* buf;
+    char* flags;
+    int numOfPacketsLeft;
+} patchedImage;
+
+void patchImageWithPacket(patchedImage* imagePtr, mavlink_image_t* imageMsg)
+{
+    int fileSize = imageMsg->fileSize;
+
+    if (imagePtr->buf == 0)
+    {
+        imagePtr->buf = malloc(sizeof(char)*fileSize);
+        imagePtr->flags = malloc(sizeof(char)*fileSize);
+        imagePtr->numOfPacketsLeft = 
+            fileSize / MAVLINK_MSG_IMAGE_FIELD_DATA_LEN + 1;
+        imagePtr->id = imageMsg->image;
+
+        int i;
+        for (i = 0; i < imagePtr->numOfPacketsLeft; i++)
+            imagePtr->flags[i] = 1;
+    }
+
+    int i;
+    int index = imageMsg->segment*MAVLINK_MSG_IMAGE_FIELD_DATA_LEN;
+
+    printf("Num of bytes = %d\n", imageMsg->bytes);
+
+    for (i = 0; i < imageMsg->bytes; i++)
+    {
+        //fwrite(&imageMsg.data[i], sizeof(char), 1, fp); 
+        imagePtr->buf[index+i] = imageMsg->data[i];
+    }
+    
+    imagePtr->flags[imageMsg->segment] = 0;
+    imagePtr->numOfPacketsLeft--;
+
+    if (imagePtr->numOfPacketsLeft <= 0)
+    {
+        printf("Imagesize = %d\n", fileSize);
+        char fileName[255];
+        bzero(fileName, 255);
+        sprintf(fileName, "test%d.jpg", imagePtr->id);
+        printf("File = %s", fileName);
+        FILE* file = fopen(fileName, "wb");
+        int i; 
+        for (i = 0; i < fileSize; i++)
+        {
+            fwrite(&imagePtr->buf[i], sizeof(char), 1, file); 
+        }
+        fclose(file);
+        free(imagePtr->buf);
+        imagePtr->buf = 0;
+        imagePtr->id = -1;
+        free(imagePtr->flags);
+        printf("Image Done!\n");
+    }
+    else
+    {
+        printf("Not yet = %d\n", imagePtr->numOfPacketsLeft);
+    }
+}
+
+int findFirstInstanceOfId(patchedImage** images, int id)
+{
+    int i;
+    for (i = 0; i < MAX_IMAGES_OPEN; i++)
+    {
+        if (images[i]->id == id)
+            return i;
+    }
+    return -1;
+}
+
 int main()
+    
 {
     printf("Ground\n");
 
@@ -16,14 +95,14 @@ int main()
     }
 
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    patchedImage* images[MAX_IMAGES_OPEN]; 
 
-    char* currentImage = 0;
-    int currentImageNumLeft = 0;
-
-    FILE* fp;
-    fp = fopen("test.jpg", "wb");
-
-    int PACKET_SIZE = MAVLINK_MSG_IMAGE_FIELD_DATA_LEN;
+    int t;
+    for (t = 0; t < MAX_IMAGES_OPEN; t++)
+    {
+        images[t] = malloc(sizeof(patchedImage));                
+        images[t]->id = -1;
+    }    
 
     while (1==1)
     {
@@ -40,6 +119,7 @@ int main()
                 printf("Data Receieved!\n");
                 switch (msg.msgid)
                 {
+                    // Heartbeat message
                     case MAVLINK_MSG_ID_HEARTBEAT:
                     {    
                         mavlink_heartbeat_t hb;
@@ -49,43 +129,26 @@ int main()
                     }
                     break;
 
+                    // Recieving a packet containing an image.
                     case MAVLINK_MSG_ID_IMAGE:
                     {
                         mavlink_image_t image;
                         mavlink_msg_image_decode(&msg, &image);
-                        printf("IMAGE\n");
-                        printf("Segment = %d\n", image.segment);
+                        int index = findFirstInstanceOfId(images, image.image);
 
-                        int fileSize = image.numSegments*PACKET_SIZE;
+                        if (index == -1) 
+                           index = findFirstInstanceOfId(images, -1); 
 
-                        if (currentImage == 0)
+                        if (index == -1)
                         {
-                            currentImage = malloc(sizeof(char)*fileSize);
-                            currentImageNumLeft = image.numSegments;
-                        }
-
-                        int i;
-
-                        // TODO: image.bytes is misnamed, its actually 
-                        // image.numOfSegmentsInImage or somethinng of that nature.
-                        int index = image.segment*PACKET_SIZE;
-
-                        for (i = 0; i < image.bytes; i++)
-                        {
-                            fwrite(&image.data[i], sizeof(char), 1, fp); 
-                            currentImage[index+i] = image.data[i]; 
-                        }
- 
-                        currentImageNumLeft--;
-                        
-                        if (currentImageNumLeft <= 0)
-                        {
-                            fclose(fp);
-                            printf("Image Done!\n");
-                        }
-                        else
-                            printf("Not yet = %d\n", currentImageNumLeft);
-                     }
+                            printf("Error: No more images!\n");
+                            break;
+                        }    
+                        printf("Index = %d\n", index); 
+                        patchImageWithPacket(
+                            images[index], 
+                            &image);
+                    }
                     break;
                 }
             } 
