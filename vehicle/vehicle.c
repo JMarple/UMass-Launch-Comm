@@ -37,8 +37,8 @@ char* sendFile(serialInfo* info, FILE* fp)
     // This is so if we need to, we can resend certain packets. 
     char* fileContents = malloc(sizeof(char)*sz);
 
-    int PACKET_SIZE = MAVLINK_MSG_IMAGE_FIELD_DATA_LEN;
-    char segbuf[MAVLINK_MSG_IMAGE_FIELD_DATA_LEN];
+    int PACKET_SIZE = MAVLINK_MSG_FILE_FIELD_DATA_LEN;
+    char segbuf[MAVLINK_MSG_FILE_FIELD_DATA_LEN];
  
     // Integer division to get number of segments needed to send
     // this file. 
@@ -65,10 +65,10 @@ char* sendFile(serialInfo* info, FILE* fp)
 
         if ( (lc%PACKET_SIZE == 0 && lc != 0) || (lc >= sz) ) 
         {
-            mavlink_image_t imgmsg;
+            mavlink_file_t imgmsg;
             imgmsg.segment = segment;
-            imgmsg.image = id; 
-            imgmsg.fileSize= sz;
+            imgmsg.id = id; 
+            imgmsg.fileSize = sz;
             imgmsg.bytes = (lc >= sz) ? sz % PACKET_SIZE : PACKET_SIZE;
 
             int i;
@@ -79,8 +79,8 @@ char* sendFile(serialInfo* info, FILE* fp)
 
             mavlink_message_t msg;
 
-            mavlink_msg_image_pack(ROCKET_ID, MAV_GENERAL_SYSTEM, &msg, 
-                imgmsg.segment, imgmsg.image, imgmsg.fileSize, 
+            mavlink_msg_file_pack(ROCKET_ID, MAV_GENERAL_SYSTEM, &msg, 
+                imgmsg.segment, imgmsg.id, imgmsg.fileSize, 
                 imgmsg.bytes, imgmsg.data);
 
             uint8_t buf[MAVLINK_MAX_PACKET_LEN]; 
@@ -102,7 +102,7 @@ int main()
     printf("Vehicle\n"); 
 
     serialInfo serial;
-    if (serialOpenPort(&serial, 0, 9600))
+    if (serialOpenPort(&serial, 2, 57600))
     {
         printf("Could not find com Port\n");
         return 0;
@@ -110,10 +110,10 @@ int main()
 
     sendGeneralHeartbeat(&serial, MAV_STATUS_OK); 
     char* firstImage = sendFile(&serial, fopen("vehicle/testimage.jpg", "r")); 
-    char* secondImage = sendFile(&serial, fopen("vehicle/testimage2.jpg", "r"));
-    char* thirdImage = sendFile(&serial, fopen("vehicle/testimage3.jpg", "r"));
+    //char* secondImage = sendFile(&serial, fopen("vehicle/testimage2.jpg", "r"));
+    //char* thirdImage = sendFile(&serial, fopen("vehicle/testimage3.jpg", "r"));
     free(firstImage);
-    free(secondImage);
-    free(thirdImage);
+    //free(secondImage);
+    //free(thirdImage);
     serialClose(&serial); 
 }

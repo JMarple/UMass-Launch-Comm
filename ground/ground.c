@@ -13,7 +13,7 @@ typedef struct _patchedImage
     int numOfPacketsLeft;
 } patchedImage;
 
-void patchImageWithPacket(patchedImage* imagePtr, mavlink_image_t* imageMsg)
+void patchImageWithPacket(patchedImage* imagePtr, mavlink_file_t* imageMsg)
 {
     int fileSize = imageMsg->fileSize;
 
@@ -22,8 +22,8 @@ void patchImageWithPacket(patchedImage* imagePtr, mavlink_image_t* imageMsg)
         imagePtr->buf = malloc(sizeof(char)*fileSize);
         imagePtr->flags = malloc(sizeof(char)*fileSize);
         imagePtr->numOfPacketsLeft = 
-            fileSize / MAVLINK_MSG_IMAGE_FIELD_DATA_LEN + 1;
-        imagePtr->id = imageMsg->image;
+            fileSize / MAVLINK_MSG_FILE_FIELD_DATA_LEN + 1;
+        imagePtr->id = imageMsg->id;
 
         int i;
         for (i = 0; i < imagePtr->numOfPacketsLeft; i++)
@@ -31,9 +31,7 @@ void patchImageWithPacket(patchedImage* imagePtr, mavlink_image_t* imageMsg)
     }
 
     int i;
-    int index = imageMsg->segment*MAVLINK_MSG_IMAGE_FIELD_DATA_LEN;
-
-    printf("Num of bytes = %d\n", imageMsg->bytes);
+    int index = imageMsg->segment*MAVLINK_MSG_FILE_FIELD_DATA_LEN;
 
     for (i = 0; i < imageMsg->bytes; i++)
     {
@@ -46,27 +44,28 @@ void patchImageWithPacket(patchedImage* imagePtr, mavlink_image_t* imageMsg)
 
     if (imagePtr->numOfPacketsLeft <= 0)
     {
-        printf("Imagesize = %d\n", fileSize);
         char fileName[255];
         bzero(fileName, 255);
         sprintf(fileName, "test%d.jpg", imagePtr->id);
-        printf("File = %s", fileName);
         FILE* file = fopen(fileName, "wb");
         int i; 
         for (i = 0; i < fileSize; i++)
         {
             fwrite(&imagePtr->buf[i], sizeof(char), 1, file); 
         }
+
+        // Clean up image pointer so it can be resused for another time.
         fclose(file);
         free(imagePtr->buf);
+        free(imagePtr->flags);
         imagePtr->buf = 0;
         imagePtr->id = -1;
-        free(imagePtr->flags);
         printf("Image Done!\n");
     }
     else
     {
-        printf("Not yet = %d\n", imagePtr->numOfPacketsLeft);
+        printf("Packets left for (id=%d) = %d\n", 
+            imagePtr->id, imagePtr->numOfPacketsLeft);
     }
 }
 
@@ -88,7 +87,7 @@ int main()
 
     serialInfo serial; 
      
-    if (serialOpenPort(&serial, 1, 9600))
+    if (serialOpenPort(&serial, 2, 57600))
     {
         printf("Could not find com port\n"); 
         return 0;
@@ -116,25 +115,28 @@ int main()
         {
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
             {
-                printf("Data Receieved!\n");
+                printf("Got a message\n");
                 switch (msg.msgid)
                 {
                     // Heartbeat message
                     case MAVLINK_MSG_ID_HEARTBEAT:
                     {    
+                        static int counter = 0;
+                        counter++;
                         mavlink_heartbeat_t hb;
                         mavlink_msg_heartbeat_decode(&msg, &hb); 
                         printf("HEARTBEAT\n");
                         printf("Status = %d\n", hb.system_status);
+                        printf("Counter = %d\n", counter);
                     }
                     break;
 
                     // Recieving a packet containing an image.
-                    case MAVLINK_MSG_ID_IMAGE:
+                    case MAVLINK_MSG_ID_FILE:
                     {
-                        mavlink_image_t image;
-                        mavlink_msg_image_decode(&msg, &image);
-                        int index = findFirstInstanceOfId(images, image.image);
+                        mavlink_file_t image;
+                        mavlink_msg_file_decode(&msg, &image);
+                        int index = findFirstInstanceOfId(images, image.id);
 
                         if (index == -1) 
                            index = findFirstInstanceOfId(images, -1); 
@@ -144,16 +146,20 @@ int main()
                             printf("Error: No more images!\n");
                             break;
                         }    
-                        printf("Index = %d\n", index); 
                         patchImageWithPacket(
                             images[index], 
                             &image);
                     }
                     break;
+            
+                    case MAVLINK_MSG_ID_FILE_HANDSHAKE:
+                    {
+                        printf("Handshake recieved\n");
+                    }
+                    break;
                 }
             } 
         }
-        
     } 
     
     serialClose(&serial);
