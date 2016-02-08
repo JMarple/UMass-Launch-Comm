@@ -5,20 +5,22 @@
 typedef struct __mavlink_file_handshake_t
 {
  uint16_t id; /*< */
+ uint16_t fileType; /*< */
 } mavlink_file_handshake_t;
 
-#define MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN 2
-#define MAVLINK_MSG_ID_102_LEN 2
+#define MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN 4
+#define MAVLINK_MSG_ID_102_LEN 4
 
-#define MAVLINK_MSG_ID_FILE_HANDSHAKE_CRC 86
-#define MAVLINK_MSG_ID_102_CRC 86
+#define MAVLINK_MSG_ID_FILE_HANDSHAKE_CRC 216
+#define MAVLINK_MSG_ID_102_CRC 216
 
 
 
 #define MAVLINK_MESSAGE_INFO_FILE_HANDSHAKE { \
 	"FILE_HANDSHAKE", \
-	1, \
+	2, \
 	{  { "id", NULL, MAVLINK_TYPE_UINT16_T, 0, 0, offsetof(mavlink_file_handshake_t, id) }, \
+         { "fileType", NULL, MAVLINK_TYPE_UINT16_T, 0, 2, offsetof(mavlink_file_handshake_t, fileType) }, \
          } \
 }
 
@@ -30,19 +32,22 @@ typedef struct __mavlink_file_handshake_t
  * @param msg The MAVLink message to compress the data into
  *
  * @param id 
+ * @param fileType 
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_file_handshake_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-						       uint16_t id)
+						       uint16_t id, uint16_t fileType)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN];
 	_mav_put_uint16_t(buf, 0, id);
+	_mav_put_uint16_t(buf, 2, fileType);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN);
 #else
 	mavlink_file_handshake_t packet;
 	packet.id = id;
+	packet.fileType = fileType;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN);
 #endif
@@ -62,20 +67,23 @@ static inline uint16_t mavlink_msg_file_handshake_pack(uint8_t system_id, uint8_
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
  * @param id 
+ * @param fileType 
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_file_handshake_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
 							   mavlink_message_t* msg,
-						           uint16_t id)
+						           uint16_t id,uint16_t fileType)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN];
 	_mav_put_uint16_t(buf, 0, id);
+	_mav_put_uint16_t(buf, 2, fileType);
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN);
 #else
 	mavlink_file_handshake_t packet;
 	packet.id = id;
+	packet.fileType = fileType;
 
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN);
 #endif
@@ -98,7 +106,7 @@ static inline uint16_t mavlink_msg_file_handshake_pack_chan(uint8_t system_id, u
  */
 static inline uint16_t mavlink_msg_file_handshake_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_file_handshake_t* file_handshake)
 {
-	return mavlink_msg_file_handshake_pack(system_id, component_id, msg, file_handshake->id);
+	return mavlink_msg_file_handshake_pack(system_id, component_id, msg, file_handshake->id, file_handshake->fileType);
 }
 
 /**
@@ -112,7 +120,7 @@ static inline uint16_t mavlink_msg_file_handshake_encode(uint8_t system_id, uint
  */
 static inline uint16_t mavlink_msg_file_handshake_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_file_handshake_t* file_handshake)
 {
-	return mavlink_msg_file_handshake_pack_chan(system_id, component_id, chan, msg, file_handshake->id);
+	return mavlink_msg_file_handshake_pack_chan(system_id, component_id, chan, msg, file_handshake->id, file_handshake->fileType);
 }
 
 /**
@@ -120,14 +128,16 @@ static inline uint16_t mavlink_msg_file_handshake_encode_chan(uint8_t system_id,
  * @param chan MAVLink channel to send the message
  *
  * @param id 
+ * @param fileType 
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_file_handshake_send(mavlink_channel_t chan, uint16_t id)
+static inline void mavlink_msg_file_handshake_send(mavlink_channel_t chan, uint16_t id, uint16_t fileType)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN];
 	_mav_put_uint16_t(buf, 0, id);
+	_mav_put_uint16_t(buf, 2, fileType);
 
 #if MAVLINK_CRC_EXTRA
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILE_HANDSHAKE, buf, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN, MAVLINK_MSG_ID_FILE_HANDSHAKE_CRC);
@@ -137,6 +147,7 @@ static inline void mavlink_msg_file_handshake_send(mavlink_channel_t chan, uint1
 #else
 	mavlink_file_handshake_t packet;
 	packet.id = id;
+	packet.fileType = fileType;
 
 #if MAVLINK_CRC_EXTRA
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILE_HANDSHAKE, (const char *)&packet, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN, MAVLINK_MSG_ID_FILE_HANDSHAKE_CRC);
@@ -154,11 +165,12 @@ static inline void mavlink_msg_file_handshake_send(mavlink_channel_t chan, uint1
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_file_handshake_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t id)
+static inline void mavlink_msg_file_handshake_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t id, uint16_t fileType)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char *buf = (char *)msgbuf;
 	_mav_put_uint16_t(buf, 0, id);
+	_mav_put_uint16_t(buf, 2, fileType);
 
 #if MAVLINK_CRC_EXTRA
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILE_HANDSHAKE, buf, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN, MAVLINK_MSG_ID_FILE_HANDSHAKE_CRC);
@@ -168,6 +180,7 @@ static inline void mavlink_msg_file_handshake_send_buf(mavlink_message_t *msgbuf
 #else
 	mavlink_file_handshake_t *packet = (mavlink_file_handshake_t *)msgbuf;
 	packet->id = id;
+	packet->fileType = fileType;
 
 #if MAVLINK_CRC_EXTRA
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_FILE_HANDSHAKE, (const char *)packet, MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN, MAVLINK_MSG_ID_FILE_HANDSHAKE_CRC);
@@ -194,6 +207,16 @@ static inline uint16_t mavlink_msg_file_handshake_get_id(const mavlink_message_t
 }
 
 /**
+ * @brief Get field fileType from file_handshake message
+ *
+ * @return 
+ */
+static inline uint16_t mavlink_msg_file_handshake_get_fileType(const mavlink_message_t* msg)
+{
+	return _MAV_RETURN_uint16_t(msg,  2);
+}
+
+/**
  * @brief Decode a file_handshake message into a struct
  *
  * @param msg The message to decode
@@ -203,6 +226,7 @@ static inline void mavlink_msg_file_handshake_decode(const mavlink_message_t* ms
 {
 #if MAVLINK_NEED_BYTE_SWAP
 	file_handshake->id = mavlink_msg_file_handshake_get_id(msg);
+	file_handshake->fileType = mavlink_msg_file_handshake_get_fileType(msg);
 #else
 	memcpy(file_handshake, _MAV_PAYLOAD(msg), MAVLINK_MSG_ID_FILE_HANDSHAKE_LEN);
 #endif

@@ -15,22 +15,39 @@
                 <description>A general error message.</description>
             </entry>
         </enum>
+        <enum name="MAV_FILE_TYPE">
+            <entry value="1" name="MAV_FILE_TYPE_JPEG"></entry>
+            <entry value="2" name="MAV_FILE_TYPE_TXT"></entry>
+        </enum>
     </enums>
     <messages>
-          <message id="0" name="HEARTBEAT">
-               <description>The heartbeat message shows that a system is present and responding.</description>
-               <field type="uint8_t" name="system_status">System status flagMAV_STATUS ENUM</field>
-          </message>
-          <message id="101" name="FILE">
-                <field type="uint16_t" name="segment"></field>
-                <field type="uint16_t" name="id"></field>
-                <field type="uint32_t" name="fileSize"></field>
-                <field type="uint16_t" name="bytes"></field>
-                <field type="char[42]" name="data"></field>
-          </message>
-          <message id="102" name="FILE_HANDSHAKE">
-                <field type="uint16_t" name="id"></field>
-          </message>
+        <message id="0" name="HEARTBEAT">
+            <description>The heartbeat message shows that a system is present and responding.</description>
+            <field type="uint8_t" name="system_status">System status flagMAV_STATUS ENUM</field>
+        </message>
+        <message id="1" name="HANDSHAKE">
+            <field type="uint8_t" name="id"/>
+        </message>
+        <message id="101" name="FILE">
+            <field type="uint16_t" name="segment"></field>
+            <field type="uint16_t" name="id"></field>
+            <field type="uint32_t" name="fileSize"></field>
+            <field type="uint16_t" name="bytes"></field>
+            <field type="char[42]" name="data"></field>
+        </message>
+        <message id="102" name="FILE_HANDSHAKE">
+            <description>This is sent from the ground station to ask for an image</description>
+            <field type="uint16_t" name="id"></field>
+            <field type="uint16_t" name="fileType"></field>
+        </message>
+        <message id="103" name="FILE_REQUEST_PACKET">
+            <description>This is sent by the ground station when packets get dropped.</description>
+            <field type="uint16_t" name="id"></field>
+            <field type="uint16_t" name="segment"></field>
+        </message>
+        <message id="104" name="FILE_CONFIRM">
+            <field type="uint16_t" name="id"></field>
+        </message>
     </messages>
 
 </mavlink>

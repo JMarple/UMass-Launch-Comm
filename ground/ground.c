@@ -2,163 +2,252 @@
 #include <stdio.h>
 #include "serial.h"
 #include <stdlib.h>
+#include <unistd.h>
+#define MAX_FILES_OPEN 10
 
-#define MAX_IMAGES_OPEN 10
-
-typedef struct _patchedImage
+typedef struct _patchedFile
 {
     int id;
     char* buf;
     char* flags;
     int numOfPacketsLeft;
-} patchedImage;
+    int fileSize;
+} patchedFile;
 
-void patchImageWithPacket(patchedImage* imagePtr, mavlink_file_t* imageMsg)
+void saveCompleteFile(patchedFile* filePtr)
 {
-    int fileSize = imageMsg->fileSize;
-
-    if (imagePtr->buf == 0)
-    {
-        imagePtr->buf = malloc(sizeof(char)*fileSize);
-        imagePtr->flags = malloc(sizeof(char)*fileSize);
-        imagePtr->numOfPacketsLeft = 
-            fileSize / MAVLINK_MSG_FILE_FIELD_DATA_LEN + 1;
-        imagePtr->id = imageMsg->id;
-
-        int i;
-        for (i = 0; i < imagePtr->numOfPacketsLeft; i++)
-            imagePtr->flags[i] = 1;
-    }
+    char fileName[255];
+    bzero(fileName, 255);
+    sprintf(fileName, "test%d.jpg", filePtr->id);
+    FILE* file = fopen(fileName, "wb");
 
     int i;
-    int index = imageMsg->segment*MAVLINK_MSG_FILE_FIELD_DATA_LEN;
-
-    for (i = 0; i < imageMsg->bytes; i++)
+    for (i = 0; i < filePtr->fileSize; i++)
     {
-        //fwrite(&imageMsg.data[i], sizeof(char), 1, fp); 
-        imagePtr->buf[index+i] = imageMsg->data[i];
+        fwrite(&filePtr->buf[i], sizeof(char), 1, file); 
     }
-    
-    imagePtr->flags[imageMsg->segment] = 0;
-    imagePtr->numOfPacketsLeft--;
 
-    if (imagePtr->numOfPacketsLeft <= 0)
-    {
-        char fileName[255];
-        bzero(fileName, 255);
-        sprintf(fileName, "test%d.jpg", imagePtr->id);
-        FILE* file = fopen(fileName, "wb");
-        int i; 
-        for (i = 0; i < fileSize; i++)
-        {
-            fwrite(&imagePtr->buf[i], sizeof(char), 1, file); 
-        }
-
-        // Clean up image pointer so it can be resused for another time.
-        fclose(file);
-        free(imagePtr->buf);
-        free(imagePtr->flags);
-        imagePtr->buf = 0;
-        imagePtr->id = -1;
-        printf("Image Done!\n");
-    }
-    else
-    {
-        printf("Packets left for (id=%d) = %d\n", 
-            imagePtr->id, imagePtr->numOfPacketsLeft);
-    }
+    // Clean up image pointer so it can be resused for another time.
+    fclose(file);
+    free(filePtr->buf);
+    free(filePtr->flags);
+    filePtr->buf = 0;
+    filePtr->id = -1;
+    printf("Image Done!\n");
 }
 
-int findFirstInstanceOfId(patchedImage** images, int id)
+void patchFileWithPacket(patchedFile* filePtr, mavlink_file_t* fileMsg)
+{
+    int fileSize = fileMsg->fileSize;
+
+    if (filePtr->buf == 0)
+    {
+        filePtr->buf = malloc(sizeof(char)*fileSize);
+        filePtr->flags = malloc(sizeof(char)*fileSize);
+        filePtr->numOfPacketsLeft = 
+            fileSize / MAVLINK_MSG_FILE_FIELD_DATA_LEN + 1;
+        filePtr->id = fileMsg->id;
+
+        int i;
+        for (i = 0; i < filePtr->numOfPacketsLeft; i++)
+            filePtr->flags[i] = 1;
+        
+        filePtr->fileSize = fileSize;
+    }
+
+    int i;
+    int index = fileMsg->segment*MAVLINK_MSG_FILE_FIELD_DATA_LEN;
+
+    for (i = 0; i < fileMsg->bytes; i++)
+    {
+        filePtr->buf[index+i] = fileMsg->data[i];
+    }
+    
+    filePtr->flags[fileMsg->segment] = 0;
+    filePtr->numOfPacketsLeft--;
+
+    printf("Got packet %d, left (id=%d) = %d\n", fileMsg->segment, filePtr->id, filePtr->numOfPacketsLeft);
+}
+
+int findFirstInstanceOfId(patchedFile** files, int id)
 {
     int i;
-    for (i = 0; i < MAX_IMAGES_OPEN; i++)
+    for (i = 0; i < MAX_FILES_OPEN; i++)
     {
-        if (images[i]->id == id)
+        if (files[i]->id == id)
             return i;
     }
     return -1;
 }
 
-int main()
-    
+void requestPacket(serialInfo* info, int id, int packetNum)
 {
-    printf("Ground\n");
+    mavlink_message_t msg; 
+        
+    mavlink_msg_file_request_packet_pack(13, MAV_GENERAL_SYSTEM, &msg, id, packetNum);
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
 
+    serialSend(info, buf, len);
+}
+
+void sendFileConfirmed(serialInfo* info, int id)
+{
+    mavlink_message_t msg; 
+        
+    mavlink_msg_file_confirm_pack(13, MAV_GENERAL_SYSTEM, &msg, id);
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+
+    serialSend(info, buf, len);
+}
+
+void sendHandshakeMessage(serialInfo* info)
+{
+    mavlink_message_t msg;    
+        
+    mavlink_msg_handshake_pack(13, MAV_GENERAL_SYSTEM, &msg, 0);
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+    
+    serialSend(info, buf, len); 
+}
+
+void waitForVehicleCOM(serialInfo* info)
+{
+    while (1==1)
+    {
+        mavlink_message_t msg;
+        if (pollSerialForMessage(info, &msg))
+        {
+            if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT)
+                break; 
+        }
+
+        // Wait for half second
+        usleep(500000);
+        printf("..still Waiting\n");
+        sendHandshakeMessage(info);
+    }
+
+    printf("Found Vehicle!\n");
+}
+
+int main()
+{
     serialInfo serial; 
      
-    if (serialOpenPort(&serial, 2, 57600))
+    if (serialOpenPort(&serial, 1, 57600))
     {
         printf("Could not find com port\n"); 
         return 0;
     }
 
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-    patchedImage* images[MAX_IMAGES_OPEN]; 
+    printf(".............................\n");
+    printf("UMass COM-Link Ground Station\n");
+    printf("Waiting for vehicle COM...\n");
+
+    waitForVehicleCOM(&serial);
+
+    patchedFile* files[MAX_FILES_OPEN]; 
 
     int t;
-    for (t = 0; t < MAX_IMAGES_OPEN; t++)
+    for (t = 0; t < MAX_FILES_OPEN; t++)
     {
-        images[t] = malloc(sizeof(patchedImage));                
-        images[t]->id = -1;
+        files[t] = malloc(sizeof(patchedFile));                
+        files[t]->id = -1;
     }    
 
     while (1==1)
     {
-        int len = serialPoll(&serial, buf, MAVLINK_MAX_PACKET_LEN);
-        
-        int i; 
         mavlink_message_t msg;
-        mavlink_status_t status;
-    
-        for (i = 0; i < len; i++)
+        if (pollSerialForMessage(&serial, &msg))
         {
-            if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
+            switch (msg.msgid)
             {
-                printf("Got a message\n");
-                switch (msg.msgid)
-                {
-                    // Heartbeat message
-                    case MAVLINK_MSG_ID_HEARTBEAT:
-                    {    
-                        static int counter = 0;
-                        counter++;
-                        mavlink_heartbeat_t hb;
-                        mavlink_msg_heartbeat_decode(&msg, &hb); 
-                        printf("HEARTBEAT\n");
-                        printf("Status = %d\n", hb.system_status);
-                        printf("Counter = %d\n", counter);
-                    }
-                    break;
-
-                    // Recieving a packet containing an image.
-                    case MAVLINK_MSG_ID_FILE:
-                    {
-                        mavlink_file_t image;
-                        mavlink_msg_file_decode(&msg, &image);
-                        int index = findFirstInstanceOfId(images, image.id);
-
-                        if (index == -1) 
-                           index = findFirstInstanceOfId(images, -1); 
-
-                        if (index == -1)
-                        {
-                            printf("Error: No more images!\n");
-                            break;
-                        }    
-                        patchImageWithPacket(
-                            images[index], 
-                            &image);
-                    }
-                    break;
-            
-                    case MAVLINK_MSG_ID_FILE_HANDSHAKE:
-                    {
-                        printf("Handshake recieved\n");
-                    }
-                    break;
+                // Heartbeat message
+                case MAVLINK_MSG_ID_HEARTBEAT:
+                {    
+                    static int counter = 0;
+                    counter++;
+                    mavlink_heartbeat_t hb;
+                    mavlink_msg_heartbeat_decode(&msg, &hb); 
+                    printf("Heartbeat! %d\n", counter);
                 }
-            } 
+                break;
+
+                // Recieving a packet containing a file.
+                case MAVLINK_MSG_ID_FILE:
+                {
+                    static int counter = 0;
+                    counter++;
+                    if (counter % 10 == 0) break;
+
+                    mavlink_file_t file;
+                    mavlink_msg_file_decode(&msg, &file);
+                    int index = findFirstInstanceOfId(files, file.id);
+
+                    // If the id supplied by the message doesn't
+                    // exist, that means this is a new file.  Find
+                    // an index that is not used if the file is new.
+                    if (index == -1) 
+                       index = findFirstInstanceOfId(files, -1); 
+
+                    // If there are no more space to save data, 
+                    // report the error.
+                    if (index == -1)
+                    {
+                        printf("Error: No more space!\n");
+                        break;
+                    }    
+
+                    patchFileWithPacket(
+                        files[index], 
+                        &file);
+                }
+                break;
+        
+                // The vehicle says we recieved all the data
+                // Check for any missing data.  If there is missing
+                // data, request it, otherwise respond saying all
+                // the data is good. 
+                case MAVLINK_MSG_ID_FILE_CONFIRM:
+                {
+                    mavlink_file_confirm_t confirm;                   
+                    mavlink_msg_file_confirm_decode(&msg, &confirm);
+                   
+                    int index = findFirstInstanceOfId(files, confirm.id);
+                    // There is no item that exists to confirm..? 
+                    if (index == -1)
+                    {
+                        printf("Vehicle requested confirmation of id that we don't have\n");
+                        sendFileConfirmed(&serial, confirm.id);
+                        break;
+                    } 
+
+                    int q, flag= 0;
+                    for (q = 0; q < files[index]->fileSize / MAVLINK_MSG_FILE_FIELD_DATA_LEN + 1; q++)
+                    {
+                        if (files[index]->flags[q] != 0)
+                        {
+                            flag = 1;      
+                            break;
+                        }
+                    }      
+                    
+                    if (flag == 0)
+                    {
+                        saveCompleteFile(files[index]);
+                        sendFileConfirmed(&serial, files[index]->id);
+                    }
+                    else
+                    {
+                        printf("Requesting Packet %d\n", q);
+                        requestPacket(&serial, files[index]->id, q); 
+                    }
+                }
+                break;
+            }
         }
     } 
     

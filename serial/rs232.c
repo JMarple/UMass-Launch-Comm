@@ -55,8 +55,7 @@ char comports[38][16]={"/dev/pts/21","/dev/pts/22","/dev/ttyUSB0","/dev/ttyS3","
 
 int RS232_OpenComport(int comport_number, int baudrate, const char *mode)
 {
-  int baudr,
-      status;
+  int baudr;
 
   if((comport_number>37)||(comport_number<0))
   {
@@ -283,8 +282,6 @@ int RS232_SendBuf(int comport_number, unsigned char *buf, int size)
 
 void RS232_CloseComport(int comport_number)
 {
-  int status;
-
   /*if(ioctl(Cport[comport_number], TIOCMGET, &status) == -1)
   {
     perror("unable to get portstatus");
