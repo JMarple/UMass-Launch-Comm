@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <dirent.h>
 
 #define ROCKET_ID 13
 
@@ -184,18 +185,36 @@ int main()
         usleep(500000);
         counter++;
 
-        // This wilo be replaced in the future once we know how to detect when
-        // we've landed
-        if (counter == 6)
+        if( access( "files.lock", F_OK ) == -1 )
         {
-            char* firstFile = 
-                blockingSendFile(&serial, fopen("vehicle/testimage.jpg", "r")); 
-            free(firstFile);
+            DIR *d;
+            struct dirent *dir;
+            d = opendir("./files");
+        	if (d)
+            {
+        	    while ((dir = readdir(d)) != NULL)
+                {
+        	    	if (dir->d_name[0] != '.')
+        	    	{
+        	    	     char fileName[255];
+        	    	     sprintf(fileName, "./files/%s", dir->d_name);
+
+        	    		 printf("%s\n", fileName);
+
+                         char* firstFile =
+                             blockingSendFile(&serial,
+                             fopen(fileName, "r"));
+                         free(firstFile);
+        	    	}
+        	    }
+
+        	    closedir(d);
+            }
+
+            break;
         }
     }
 
-    //char* secondImage = sendFile(&serial, fopen("vehicle/testimage2.jpg", "r"));
-    //char* thirdImage = sendFile(&serial, fopen("vehicle/testimage3.jpg", "r"));
     serialClose(&serial); 
 
     return 0;

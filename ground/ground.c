@@ -181,7 +181,6 @@ int main()
                 {
                     static int counter = 0;
                     counter++;
-                    if (counter % 10 == 0) break;
 
                     mavlink_file_t file;
                     mavlink_msg_file_decode(&msg, &file);
