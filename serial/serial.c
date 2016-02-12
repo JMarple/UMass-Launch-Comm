@@ -21,10 +21,12 @@ void serialSend(serialInfo* info, unsigned char* buf, int len)
 {
     RS232_SendBuf(info->comPort, buf, len); 
     double numBytesPerSecond = (info->baud / 8);
+
     int uSecondsForTransmission = 1000000*len / numBytesPerSecond; 
 
     // Ensure enough time is given for the serial data to be sent.
-    usleep(uSecondsForTransmission);  
+    // TODO: Why do we need to add 10ms here to make it not drop packets?
+    usleep(uSecondsForTransmission+10000);  
 }
 
 int serialPoll(serialInfo* info, unsigned char* buf, int bufSize)

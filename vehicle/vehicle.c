@@ -171,7 +171,7 @@ int main()
     printf("Vehicle\n"); 
 
     serialInfo serial;
-    if (serialOpenPort(&serial, 0, 57600))
+    if (serialOpenPort(&serial, 2, 57600))
     {
         printf("Could not find com Port\n");
         return 0;
