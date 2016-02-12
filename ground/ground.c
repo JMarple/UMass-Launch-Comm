@@ -12,6 +12,7 @@ typedef struct _patchedFile
     char* flags;
     int numOfPacketsLeft;
     int fileSize;
+    int finishRequest;
 } patchedFile;
 
 void saveCompleteFile(patchedFile* filePtr)
@@ -33,7 +34,20 @@ void saveCompleteFile(patchedFile* filePtr)
     free(filePtr->flags);
     filePtr->buf = 0;
     filePtr->id = -1;
+    filePtr->finishRequest = 0;
     printf("Image Done!\n");
+}
+
+int getNumberOfPacketsMissing(patchedFile* filePtr)
+{
+    int i, left = 0;
+
+    for (i = 0; i < filePtr->fileSize / MAVLINK_MSG_FILE_FIELD_DATA_LEN + 1; i++)
+    {
+       if (filePtr->flags[i] == 1) left++; 
+    }
+
+    return left;
 }
 
 void patchFileWithPacket(patchedFile* filePtr, mavlink_file_t* fileMsg)
@@ -66,7 +80,8 @@ void patchFileWithPacket(patchedFile* filePtr, mavlink_file_t* fileMsg)
     filePtr->flags[fileMsg->segment] = 0;
     filePtr->numOfPacketsLeft--;
 
-    printf("Got packet %d, left (id=%d) = %d\n", fileMsg->segment, filePtr->id, filePtr->numOfPacketsLeft);
+    int left = getNumberOfPacketsMissing(filePtr);
+    printf("Got packet %d, left (id=%d) = %d\n", fileMsg->segment, filePtr->id, left);
 }
 
 int findFirstInstanceOfId(patchedFile** files, int id)
@@ -137,7 +152,7 @@ int main()
 {
     serialInfo serial; 
      
-    if (serialOpenPort(&serial, 1, 57600))
+    if (serialOpenPort(&serial, 2, 57600))
     {
         printf("Could not find com port\n"); 
         return 0;
@@ -156,6 +171,7 @@ int main()
     {
         files[t] = malloc(sizeof(patchedFile));                
         files[t]->id = -1;
+        files[t]->finishRequest = 0;
     }    
 
     while (1==1)
@@ -163,6 +179,10 @@ int main()
         mavlink_message_t msg;
         if (pollSerialForMessage(&serial, &msg))
         {
+            static int lc = 0;
+            lc++;
+            if (lc % 10 != 0)
+            {
             switch (msg.msgid)
             {
                 // Heartbeat message
@@ -241,11 +261,18 @@ int main()
                     }
                     else
                     {
+                        if (files[index]->finishRequest == 0)
+                        {
+                            int left = getNumberOfPacketsMissing(files[index]);
+                            printf("NUMBER OF DROPPED PACKETS = %d\n", left);
+                            files[index]->finishRequest = 1;
+                        }
                         printf("Requesting Packet %d\n", q);
                         requestPacket(&serial, files[index]->id, q); 
                     }
                 }
                 break;
+            }
             }
         }
     } 
