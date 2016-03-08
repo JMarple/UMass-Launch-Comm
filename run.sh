@@ -1,4 +1,4 @@
 touch files.lock
-sleep 1
+./startVehicle &
+python python/launch.py
 rm files.lock
-./startVehicle
