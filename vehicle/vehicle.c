@@ -158,6 +158,8 @@ char* blockingSendFile(serialInfo* info, FILE* fp)
             {
                 mavlink_file_request_packet_t packet;
                 mavlink_msg_file_request_packet_decode(&msg, &packet);
+
+		printf("Got message file request for: %d\n", packet.segment);
                 sendFilePacket(info, fileContents, packet.segment, sz, id); 
             }
         }
@@ -170,6 +172,16 @@ int main()
 {
     printf("Vehicle\n"); 
 
+    int pid;
+    pid = fork();
+
+    if (pid == 0) // Child
+    {
+	chdir("./python");
+        execl("/bin/sh", "sh", "run.sh", (char*)NULL);
+        return 0;    
+    }  
+    
     serialInfo serial;
     if (serialOpenPort(&serial, 2, 57600))
     {
@@ -189,15 +201,15 @@ int main()
         {
             DIR *d;
             struct dirent *dir;
-            d = opendir("./files");
-        	if (d)
+            d = opendir("./python/launchData");
+	    if (d)
             {
-        	    while ((dir = readdir(d)) != NULL)
+		while ((dir = readdir(d)) != NULL)
                 {
         	    	if (dir->d_name[0] != '.')
         	    	{
         	    	     char fileName[255];
-        	    	     sprintf(fileName, "./files/%s", dir->d_name);
+        	    	     sprintf(fileName, "./python/launchData/%s", dir->d_name);
 
         	    		 printf("%s\n", fileName);
 

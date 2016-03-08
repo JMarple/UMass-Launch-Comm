@@ -1,0 +1,2 @@
+touch files.lock
+./startVehicle

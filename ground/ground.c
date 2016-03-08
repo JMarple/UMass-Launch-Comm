@@ -179,10 +179,6 @@ int main()
         mavlink_message_t msg;
         if (pollSerialForMessage(&serial, &msg))
         {
-            static int lc = 0;
-            lc++;
-            if (lc % 10 != 0)
-            {
             switch (msg.msgid)
             {
                 // Heartbeat message
@@ -272,7 +268,6 @@ int main()
                     }
                 }
                 break;
-            }
             }
         }
     } 
