@@ -8,4 +8,7 @@ startGround
 *.swo
 *.swn
 *.jpg
+python/*.pyc
 python/launchData
+startGround.exe
+startVehicle.exe

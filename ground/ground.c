@@ -58,6 +58,7 @@ void patchFileWithPacket(patchedFile* filePtr, mavlink_file_t* fileMsg)
     {
         filePtr->buf = malloc(sizeof(char)*fileSize);
         filePtr->flags = malloc(sizeof(char)*fileSize);
+
         filePtr->numOfPacketsLeft = 
             fileSize / MAVLINK_MSG_FILE_FIELD_DATA_LEN + 1;
         filePtr->id = fileMsg->id;
@@ -76,10 +77,8 @@ void patchFileWithPacket(patchedFile* filePtr, mavlink_file_t* fileMsg)
     {
         filePtr->buf[index+i] = fileMsg->data[i];
     }
-    
     filePtr->flags[fileMsg->segment] = 0;
     filePtr->numOfPacketsLeft--;
-
     int left = getNumberOfPacketsMissing(filePtr);
     printf("Got packet %d, left (id=%d) = %d\n", fileMsg->segment, filePtr->id, left);
 }
@@ -172,6 +171,7 @@ int main()
         files[t] = malloc(sizeof(patchedFile));                
         files[t]->id = -1;
         files[t]->finishRequest = 0;
+        files[t]->buf = 0;
     }    
 
     while (1==1)
@@ -215,7 +215,6 @@ int main()
                         printf("Error: No more space!\n");
                         break;
                     }    
-
                     patchFileWithPacket(
                         files[index], 
                         &file);

@@ -183,7 +183,7 @@ int main()
     }  
     
     serialInfo serial;
-    if (serialOpenPort(&serial, 2, 57600))
+    if (serialOpenPort(&serial, 3, 57600))
     {
         printf("Could not find com Port\n");
         return 0;
