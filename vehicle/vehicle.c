@@ -168,9 +168,26 @@ char* blockingSendFile(serialInfo* info, FILE* fp)
     return fileContents;
 } 
 
+void waitForGroundCOM(serialInfo* info)
+{
+    while(1==1)
+    {
+        mavlink_message_t msg;
+        if (pollSerialForMessage(info, &msg))
+        {
+            if (msg.msgid == MAVLINK_MSG_ID_HANDSHAKE)
+            {
+                printf("Connection established!\n");
+                break;
+            }
+        }
+    }
+}
+
 int main() 
 {
     printf("Vehicle\n"); 
+    printf("Waiting for connection...\n");
 
     int pid;
     pid = fork();
@@ -188,6 +205,8 @@ int main()
         printf("Could not find com Port\n");
         return 0;
     }   
+
+    waitForGroundCOM(&serial);
 
     int counter = 0;
 
